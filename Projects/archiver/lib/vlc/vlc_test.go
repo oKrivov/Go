@@ -1,17 +1,16 @@
 package vlc
 
 import (
+	"reflect"
 	"testing"
 )
 
 func Test_prepareText(t *testing.T) {
 	tests := []struct {
-		name string // description of this test case
-		// Named input parameters for target function.
+		name string
 		str  string
 		want string
 	}{
-		// TODO: Add test cases.
 		{
 			name: "base test",
 			str:  "My name is Ted",
@@ -25,8 +24,6 @@ func Test_prepareText(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// got := prepareText(tt.str)
-			// TODO: update the condition below to compare got with tt.want.
 			if got := prepareText(tt.str); got != tt.want {
 				t.Errorf("prepareText() = %v, want %v", got, tt.want)
 			}
@@ -48,7 +45,6 @@ func Test_encodeBin(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// TODO: update the condition below to compare got with tt.want.
 			if got := encodeBin(tt.str); got != tt.want {
 				t.Errorf("encodeBin() = %v, want %v", got, tt.want)
 			}
@@ -60,18 +56,18 @@ func TestEncode(t *testing.T) {
 	tests := []struct {
 		name string
 		str  string
-		want string
+		want []byte
 	}{
 		{
 			name: "base test",
 			str:  "My name is Ted",
-			want: "20 30 3C 18 77 4A E4 4D 28",
+			want: []byte{32, 48, 60, 24, 119, 74, 228, 77, 40},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			if got := Encode(tt.str); got != tt.want {
+			if got := Encode(tt.str); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Encode() = %v, want %v", got, tt.want)
 			}
 		})
@@ -81,12 +77,12 @@ func TestEncode(t *testing.T) {
 func TestDecode(t *testing.T) {
 	tests := []struct {
 		name        string
-		encodedText string
+		encodedText []byte
 		want        string
 	}{
 		{
 			name:        "base test",
-			encodedText: "20 30 3C 18 77 4A E4 4D 28",
+			encodedText: []byte{32, 48, 60, 24, 119, 74, 228, 77, 40},
 			want:        "My name is Ted",
 		},
 	}

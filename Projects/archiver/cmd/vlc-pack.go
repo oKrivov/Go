@@ -41,9 +41,9 @@ func pack(_ *cobra.Command, args []string) {
 
 	packed := vlc.Encode(string(data))
 
-	fmt.Println(string(data)) // TODO: remove
+	fmt.Println(string(data))
 
-	err = os.WriteFile(packedFileName(filePath), []byte(packed), 0644)
+	err = os.WriteFile(packedFileName(filePath), packed, 0644)
 	if err != nil {
 		handlerErr(err)
 	}
