@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -9,90 +10,131 @@ import (
 	"unicode/utf8"
 )
 
+var (
+	ErrInvalidOperator = errors.New("invalid operator")
+	ErrDeviaionByZero  = errors.New("division by zero")
+)
+
 func main() {
-	greetings()
+	reader := bufio.NewReader(os.Stdin)
 
-	a, b, op := getCalcParams()
-	fmt.Println(calc(a, b, op))
-
-	wordsCount()
-}
-
-func greetings() {
-	var name string
-	var age int
-
-	fmt.Println("Enter your name:")
-	_, errName := fmt.Scanln(&name)
-	if errName != nil {
-		fmt.Println("The value name type is invalid!")
+	if err := greetings(reader); err != nil {
+		fmt.Println("Error:", err)
 		return
 	}
 
-	fmt.Println("Enter your age:")
-	_, errAge := fmt.Scanln(&age)
-	if errAge != nil {
-		fmt.Println("The value age type is invalid!")
+	a, b, op, err := getCalcParams(reader)
+	if err != nil {
+		fmt.Println("Error", err)
 		return
+	}
+
+	res, err := calc(a, b, op)
+	if err != nil {
+		fmt.Println("Calculation error:", err)
+		return
+	}
+	fmt.Println(res)
+
+	if err := wordsCount(reader); err != nil {
+		fmt.Println("Error:", err)
+	}
+}
+
+func greetings(r *bufio.Reader) error {
+	fmt.Println("Enter your name:")
+
+	name, err := readLine(r)
+	if err != nil {
+		return err
+	}
+
+	ageStr, err := readLine(r)
+	if err != nil {
+		return err
+	}
+
+	age, err := strconv.Atoi(ageStr)
+	if err != nil {
+		return fmt.Errorf("invalid age: %w", err)
 	}
 
 	fmt.Printf("Hello, %v. Next year your will be %v.\n", name, age+1)
+	return nil
 }
 
-func getCalcParams() (firstNum int, secondNum int, operator string) {
-	reader := bufio.NewReader(os.Stdin)
-
-	fmt.Println("Enter first number:")
-	text1, _ := reader.ReadString('\n')
-	firstNum, err := strconv.Atoi(strings.Trim(text1, "\n"))
-
-	if err == nil {
-		fmt.Println("Enter second number:")
-		text2, _ := reader.ReadString('\n')
-		secondNum, err = strconv.Atoi(strings.Trim(text2, "\n"))
-
-		if err == nil {
-			fmt.Println("Enter operator:")
-			operator, _ = reader.ReadString('\n')
-			operator = strings.Trim(operator, "\n")
-
-			return firstNum, secondNum, operator
-		}
+func readLine(r *bufio.Reader) (string, error) {
+	line, err := r.ReadString('\n')
+	if err != nil {
+		return "", err
 	}
-	return 0, 0, "0"
+	return strings.TrimSpace(line), nil
 }
 
-func calc(a, b int, op string) int {
-	result := 0
+func getCalcParams(r *bufio.Reader) (int, int, string, error) {
+	fmt.Println("Enter first number:")
+	aStr, err := readLine(r)
+	if err != nil {
+		return 0, 0, "", err
+	}
+
+	a, err := strconv.Atoi(aStr)
+	if err != nil {
+		return 0, 0, "", fmt.Errorf("invalid first numder: %w", err)
+	}
+
+	fmt.Println("Enter second number:")
+
+	bStr, err := readLine(r)
+	if err != nil {
+		return 0, 0, "", err
+	}
+
+	b, err := strconv.Atoi(bStr)
+	if err != nil {
+		return 0, 0, "", fmt.Errorf("invalid second number: %w", err)
+	}
+
+	fmt.Println("Enter operator:")
+
+	op, err := readLine(r)
+	if err != nil {
+		return 0, 0, "", err
+	}
+
+	return a, b, op, nil
+}
+
+func calc(a, b int, op string) (int, error) {
 	switch op {
 	case "+":
-		result = a + b
+		return a + b, nil
 	case "-":
-		result = a - b
+		return a - b, nil
 	case "*":
-		result = a * b
+		return a * b, nil
 	case "/":
 		if b == 0 {
-			fmt.Println("you can't divide by zero!")
-			return 0
+			return 0, ErrDeviaionByZero
 		}
-		result = a / b
+		return a / b, nil
 	default:
-		fmt.Println("unknown operator:", op)
-		return 0
+		return 0, ErrInvalidOperator
 	}
-	return result
 }
 
-func wordsCount() {
-	reader := bufio.NewReader(os.Stdin)
-
+func wordsCount(r *bufio.Reader) error {
 	fmt.Println("Enter text:")
-	text, _ := reader.ReadString('\n')
-	text = strings.Trim(text, "\n")
+	text, err := readLine(r)
+	if err != nil {
+		return err
+	}
+
 	chars := utf8.RuneCountInString(text)
 	words := strings.Fields(text)
 
 	fmt.Println("Words:", len(words))
 	fmt.Println("Chars:", chars)
+
+	return nil
 }

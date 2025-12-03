@@ -40,19 +40,20 @@ op = "/" → вернуть a / b
 */
 func calc(a, b int, op string) int {
 	result := 0
-	if op == "+" {
+	switch op {
+	case "+":
 		result = a + b
-	} else if op == "-" {
+	case "-":
 		result = a - b
-	} else if op == "*" {
+	case "*":
 		result = a * b
-	} else if op == "/" {
+	case "/":
 		if b == 0 {
 			fmt.Println("you can't divide by zero!")
 			return 0
 		}
 		result = a / b
-	} else {
+	default:
 		fmt.Println("unknown operator:", op)
 		return 0
 	}
