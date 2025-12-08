@@ -10,9 +10,8 @@ import (
 	"strings"
 )
 
-var ErrDevisionByZero = errors.New("division by zero")
+var ErrDivisionByZero = errors.New("division by zero")
 
-// Exercise 2
 type NegativeNumberError struct {
 	Value float64
 }
@@ -21,89 +20,36 @@ func (e NegativeNumberError) Error() string {
 	return fmt.Sprintf("cannot take sqrt of negative number: %f", e.Value)
 }
 
-func main() {
-	// Exercise 1
-	Divide(1, 0)
-	Divide(10, 3)
-	Divide(0, 3)
-
-	// Exercise 2
-	Sqrt(-9)
-	Sqrt(1)
-	Sqrt(2)
-	Sqrt(0)
-
-	r := bufio.NewReader(os.Stdin)
-	// Exercise 3
-	SafeRun(func() {
-		fmt.Println("Doing work...")
-		panic("something bad happened")
-	})
-	_, _, txt, err := getCalcParams(r)
-	// fmt.Println(err)
-
-	if err != nil {
-		fmt.Println("Error;", err)
-		return
-	}
-	fmt.Println(txt)
-
-	// // Exercise 4
-
-	if res, err := calc(r); err != nil {
-		fmt.Println(err)
-		return
-	} else {
-		fmt.Println(res)
-	}
-}
-
-// Exercise 1
-func Divide(a, b float64) {
-	res, err := handlerDivide(a, b)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println(res)
-}
-
-func handlerDivide(a, b float64) (float64, error) {
-	if b == 0 {
-		return 0, errors.New("devision by zero")
-	}
-	return a / b, nil
-}
-
-// Exercise 2
-func handlerSqrt(x float64) (float64, error) {
-	if x < 0 {
-		return 0, NegativeNumberError{Value: x}
-	}
-	return math.Sqrt(x), nil
-}
-
-func Sqrt(x float64) {
-	res, err := handlerSqrt(x)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	fmt.Println(res)
-}
-
-// Exercise 3
+// SafeRun выполняет f и безопасно восстанавливает panic.
 func SafeRun(f func()) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Recover from panic 🔥:", r)
 		}
 	}()
-
 	f()
 }
 
-// Exercise 4
+// Divide возвращает результат деления a / b или ошибку,
+// если b == 0.
+func Divide(a, b float64) (float64, error) {
+	if b == 0 {
+		return 0, errors.New("devision by zero")
+	}
+	return a / b, nil
+}
+
+// Sqrt вычисляет квадратный корень, возвращает кастомную ошибку,
+// если x < 0.
+func Sqrt(x float64) (float64, error) {
+	if x < 0 {
+		return 0, NegativeNumberError{Value: x}
+	}
+	return math.Sqrt(x), nil
+}
+
+// readLine читает одну строку из reader и возвращает её trimmed.
+// Если EOF или другая ошибка — возвращает её.
 func readLine(r *bufio.Reader) (string, error) {
 	line, err := r.ReadString('\n')
 	if err != nil {
@@ -112,70 +58,60 @@ func readLine(r *bufio.Reader) (string, error) {
 	return strings.TrimSpace(line), nil
 }
 
-func parseParams(l string) (int, int, string, error) {
-	params := strings.Fields(l)
+// parseParams парсит строку "a op b" и возвращает a, b, op или ошибку.
+// Не использует panic — всегда возвращает ошибку при некорректном вводе.
+func parseParams(line string) (int, int, string, error) {
+	fields := strings.Fields(line)
 
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("Recover from panic 🔥:", r)
-		}
-	}()
-
-	a, err := strconv.Atoi(params[0])
-	if err != nil {
-		panic(err)
+	if len(fields) != 3 {
+		return 0, 0, "", fmt.Errorf("invalid input format: expected  `a op b`")
 	}
-	op := params[1]
+	aStr, op, bStr := fields[0], fields[1], fields[2]
 
-	b, err := strconv.Atoi(params[2])
+	a, err := strconv.Atoi(aStr)
 	if err != nil {
-		panic(err)
+		return 0, 0, "", fmt.Errorf("invalid first numder: %w", err)
+	}
+
+	b, err := strconv.Atoi(bStr)
+	if err != nil {
+		return 0, 0, "", fmt.Errorf("invalid second numder: %w", err)
+	}
+	if (op != "+") && op != "-" && op != "*" && op != "/" {
+		return 0, 0, "", fmt.Errorf("invalid operator: %s", op)
 	}
 
 	return a, b, op, nil
 }
 
+// getCalcParams интерактивно запрашивает у пользователя параметры операции.
+// Возвращает a,b,op или ошибку (например io.EOF).
 func getCalcParams(r *bufio.Reader) (int, int, string, error) {
-	var (
-		line, op string
-		err      error
-		a, b     int
-	)
-
 	for {
-		fmt.Println("Enter parmetrs for calculation.")
-		fmt.Println("For example: 2 * 2")
-		fmt.Print(": ")
+		fmt.Println("Enter parmetrs for calculation (example: 2 * 2). Press Ctrl+D to exit.")
+		fmt.Print(">")
 
-		line, err = readLine(r)
-
+		line, err := readLine(r)
 		if err != nil {
-			return 0, 0, "", fmt.Errorf("Error: %w", err)
+			// распространяется на io.EOF или другие I/O ошибки
+			return 0, 0, "", err
+		}
+		if line == "" {
+			fmt.Println("Empty input? try again.")
+			continue
 		}
 
-		a, b, op, err = parseParams(line)
+		a, b, op, err := parseParams(line)
 		if err != nil {
-			return 0, 0, "", fmt.Errorf("Error: %w", err)
+			fmt.Println("Input error:", err)
+			continue // попросим ввести снова
 		}
-
-		if (op != "+") && op != "-" && op != "*" && op != "/" {
-			fmt.Println("You enter incorrect opperrator or not a number!")
-			fmt.Println("The operator has been like: + - * /")
-		} else if len(line) == 0 {
-			fmt.Print("You have not entered the params, please try again!\n")
-		} else {
-			break
-		}
+		return a, b, op, nil
 	}
-
-	return a, b, op, err
 }
 
-func calc(r *bufio.Reader) (int, error) {
-	a, b, op, err := getCalcParams(r)
-	if err != nil {
-		return 0, err
-	}
+// calc выполняет целочисленную операцию a op b и возвращает результат или ошибку.
+func calc(a, b int, op string) (int, error) {
 	switch op {
 	case "+":
 		return a + b, nil
@@ -185,13 +121,82 @@ func calc(r *bufio.Reader) (int, error) {
 		return a * b, nil
 	case "/":
 		if b == 0 {
-			return 0, ErrDevisionByZero
+			return 0, ErrDivisionByZero
 		}
 		return a / b, nil
 	default:
-		fmt.Println("You enter incorrect opperrator!")
-		fmt.Println("The operator has been like: + - * /")
-		readLine(r)
-		return 0, nil
+		return 0, fmt.Errorf("unsupported operator: %s", op)
 	}
+}
+
+func main() {
+
+	// Demo SafeRun()
+	fmt.Println("\n=== SafeRun Demo ===")
+	SafeRun(func() {
+		fmt.Println("Doing work...")
+		panic("something bad happened")
+	})
+
+	// Demo Divide()
+	fmt.Println("\n=== Divide Demo ===")
+	cases := [][2]float64{
+		{1, 0},
+		{10, 3},
+		{0, 3},
+	}
+
+	for _, c := range cases {
+		res, err := Divide(c[0], c[1])
+		if err != nil {
+			if errors.Is(err, ErrDivisionByZero) {
+				fmt.Printf("Divide(%v, %v) error: %v\n", c[0], c[1], err)
+			} else {
+				fmt.Printf("Divide(%v, %v) unexpected error: %v\n", c[0], c[1], err)
+			}
+			continue
+		}
+		fmt.Printf("Divide(%v, %v) = %v\n", c[0], c[1], res)
+	}
+
+	// Deno Sqrt()
+	fmt.Println("\n=== Divide Demo ===")
+	sqrtCases := []float64{-9, 1, 2, 0}
+
+	for _, x := range sqrtCases {
+		var negError NegativeNumberError
+		res, err := Sqrt(x)
+		if err != nil {
+			if errors.As(err, &negError) {
+				fmt.Printf("Sqrt(%v) custom error: %v\n", x, err)
+			} else {
+				fmt.Printf("Sqrt(%v) unexpected error: %v\n", x, err)
+			}
+			continue
+		}
+		fmt.Printf("Sqrt(%v) = %v\n", x, res)
+	}
+
+	// Demo CLI Calculator
+	fmt.Println("\n=== Interactive calculator ===")
+	r := bufio.NewReader(os.Stdin)
+
+	a, b, op, err := getCalcParams(r)
+
+	if err != nil {
+		// или io.EOF или пользлватедль набрал Ctrl+D для выхода;
+		fmt.Println("Input error (exiting):", err)
+		return
+	}
+
+	res, err := calc(a, b, op)
+	if err != nil {
+		if errors.Is(err, ErrDivisionByZero) {
+			fmt.Println("Calculation error:", err)
+		} else {
+			fmt.Println("Unexpected error:", err)
+		}
+		return
+	}
+	fmt.Printf("%d %s %d = %d\n", a, op, b, res)
 }
