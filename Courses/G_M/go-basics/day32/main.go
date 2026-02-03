@@ -51,7 +51,7 @@ func hello(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("request started")
 
 	select {
-	case <-time.After(3 * time.Second):
+	case <-time.After(5 * time.Second):
 		fmt.Fprintln(w, "hello")
 		fmt.Println("equest finished")
 	case <-ctx.Done():
